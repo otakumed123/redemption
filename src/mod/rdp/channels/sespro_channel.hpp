@@ -1175,10 +1175,47 @@ public:
                             KVLog("raw_result_message"_av, parameters_[2]),
                         });
 
+                        std::string truncated_app_name;
+
+                        // Dirty quick fix of #31137
+                        {
+                            auto find_nth_occurence = [](const std::string& app_name,
+                                                         char c,
+                                                         int n)
+                            {
+                                int occur = 0;
+
+                                for (int i = 0; i < app_name.length(); ++i)
+                                {
+                                    if (app_name[i] == c)
+                                    {
+                                        ++occur;
+                                    }
+                                    if (occur == n)
+                                    {
+                                        return i;
+                                    }
+                                }
+
+                                return -1;
+                            };
+
+                            int pos = find_nth_occurence(parameters_[0], '\"', 2);
+
+                            if (pos != -1)
+                            {
+                                truncated_app_name.assign(parameters_[0].c_str(), pos + 1);
+                            }
+                        }
+
+                        zstring_view app_name = (truncated_app_name.empty()) ?
+                            parameters_[0] : truncated_app_name;
+
+
                         LOG(LOG_ERR,
                             "Session Probe failed to run startup application: "
                             "app_name=%s  raw_result=%s  raw_result_message=%s",
-                            parameters_[0], parameters_[1], parameters_[2]);
+                            app_name.c_str(), parameters_[1], parameters_[2]);
 
                         this->session_log.report(
                             "SESSION_PROBE_RUN_STARTUP_APPLICATION_FAILED", "");
